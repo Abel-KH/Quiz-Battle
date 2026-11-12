@@ -1,10 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace QuizBattleSpel
+﻿namespace QuizBattleSpel
 {
-    internal class MultipleChoiceQuestion
+    internal class MultipleChoiceQuestion : Question
     {
+        public List<string> Options { get; set; }
+        public int CorrectIndex { get; set; }
+        public MultipleChoiceQuestion(string text,
+        string difficulty,
+        List<string> options,
+        int correctIndex)
+        : base(text, difficulty)
+        {
+            Options = options;
+            CorrectIndex = correctIndex;
+        }
+        public void DisplayQuestion()
+        {
+            Console.WriteLine($"Question: {Text}");
+            for (int i = 0; i < Options.Count; i++)
+            {
+                Console.WriteLine($"{i + 1}. {Options[i]}");
+            }
+        }
+        public override bool CheckAnswer(string answer)
+        {
+            if (int.TryParse(answer, out int selectedAnswer))
+            {
+                return selectedAnswer - 1 == CorrectIndex;
+            }
+            return false;
+        }
     }
 }
