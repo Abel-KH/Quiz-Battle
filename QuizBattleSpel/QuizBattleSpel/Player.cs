@@ -21,36 +21,48 @@ namespace QuizBattleSpel
         public int RegisterAnswer(bool isCorrect, string difficulty)
         {
             int pointsEarned = 0;
+            int streakBonus = 0;
+            
             if (!isCorrect)
             {
                 CurrentStreak = 0;
-                pointsEarned = 0;
+                return 0;
             }
+            
             else if (isCorrect == true && difficulty == "easy")
             {
                 pointsEarned = 10;
-                Score = pointsEarned + Score;
-                CorrectAnswers++;
-                CurrentStreak++;
 
             }
+            
             else if (isCorrect == true && difficulty == "medium")
             {
                 pointsEarned = 20;
-                Score = pointsEarned + Score;
-                CorrectAnswers++;
-                CurrentStreak++;
 
             }
+            
             else if (isCorrect == true && difficulty == "hard")
             {
                 pointsEarned = 30;
-                Score = pointsEarned + Score;
-                CorrectAnswers++;
-                CurrentStreak++;
             }
 
-            return pointsEarned;
+            if (CurrentStreak > 0)
+            {
+                streakBonus = CurrentStreak*5;
+
+                if (streakBonus > 20)
+                {
+                    streakBonus = 20;
+                }
+            }
+
+            int combinedPoints = pointsEarned + streakBonus;
+
+            Score = Score + combinedPoints;
+            CorrectAnswers++;
+            CurrentStreak++;
+
+            return combinedPoints;
         }
 
     }
