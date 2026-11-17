@@ -1,12 +1,14 @@
-﻿using QuizBattleSpel;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 namespace QuizBattleSpel
 {
     internal class Game
     {
         private readonly QuestionManager questionManager;
         private readonly List<Player> players;
-        private int currentPlayerIndex = 0;
-        public Game(QuestionManager questionManager, List<Player> players)
+        private readonly int rounds;
+        public Game(QuestionManager questionManager, List<Player> players, int rounds)
         {
             this.players = players;
             this.rounds = rounds;
@@ -14,33 +16,34 @@ namespace QuizBattleSpel
         }
         public void StartGame()
         {
-            while (true)
+            Console.WriteLine("Welcome to the Quiz Battle Game!");
+
+            for (int round = 1; round <= rounds; round++)
             {
-                Console.WriteLine("Welcome to the Quiz Battle Game!");
-                for (int i = 0; i < players.Count; i++)
+                if (!questionManager.HasQuestionsLeft())
+                {
+                    Console.WriteLine("No more questions available. The game ends early.");
+                    break;
+                }
+
+                Console.WriteLine($"\nRound {round} of {rounds}!");
+
+                foreach (Player player in players)
                 {
                     if (!questionManager.HasQuestionsLeft())
                     {
-                        Console.WriteLine("No more questions available.");
+                        Console.WriteLine("No more questions available. The game ends early.");
                         break;
                     }
-                    Console.WriteLine($"\n Round {rounds} av {rounds}!");
 
-                    foreach (Player player in players)
-                    {
-                        if (!questionManager.HasQuestionsLeft())
-                        {
-                            Console.WriteLine("No more questions available.");
-                            break;
-                        }
-                        PlayerTurn(player);
-
-
-                    }
+                    PlayerTurn(player);
                 }
-                ShowFinalResults();
             }
+
+            ShowFinalResults();
         }
+
+
         private void PlayerTurn(Player player)
         {
             Console.WriteLine($"\n{player.Name}'s turn!");
@@ -49,49 +52,69 @@ namespace QuizBattleSpel
 
             if (category == null)
             {
-                Console.WriteLine("Invalid category choice. Skipping turn.");
+                Console.WriteLine("No category available.");
                 return;
             }
+
             Question? question = questionManager.GetRandomQuestion(category);
+
             if (question == null)
             {
-                Console.WriteLine("No more questions available in this category.");
+                Console.WriteLine("No more questions in this category.");
                 return;
             }
-            Console.WriteLine($"Category: {category.Name}");
+
+            Console.WriteLine($"\nCategory: {category.Name}");
             Console.WriteLine($"Points: {question.GetPoints()}");
+            Console.WriteLine(question.Text);
 
-            if (question is IQuestionDisplay display)
+            if (question is MultipleChoiceQuestion mcQuestion)
             {
-                display.DisplayQuestion();
+                for (int i = 0; i < mcQuestion.Options.Count; i++)
+                {
+                    Console.WriteLine($"{i + 1}. {mcQuestion.Options[i]}");
+                }
+            }
+            else if (question is TrueFalseQuestion)
+            {
+                Console.WriteLine("Answer True or False.");
+            }
 
+            string answer = GetCorrectAnswer(question);
 
-                string answer = GetAnswer(question);
+            bool isCorrect = question.CheckAnswer(answer);
 
-                int points = question.GetPoints();
-                int totalPoints = player.AddPoints(points);
-                int bonus = player.GetStreakBonus(points);
+            int pointsEarned = player.RegisterAnswer(
+                isCorrect,
+                question.Difficulty
+            );
 
-                Console.WriteLine($"You earned {points} points for this question.");
+            if (isCorrect)
+            {
+                int basePoints = question.GetPoints();
+                int bonus = pointsEarned - basePoints;
+
+                Console.WriteLine("\nCorrect answer!");
+
                 if (bonus > 0)
                 {
-                    Console.WriteLine($"{player.Name} earned {points} points and a streak bonus of {bonus} points!");
+                    Console.WriteLine($"Base points: {basePoints}");
+                    Console.WriteLine($"Streak bonus: {bonus}");
                 }
-                else
-                {
-                    Console.WriteLine($"{player.Name} earned {points} points.");
-                }
-                Console.WriteLine($"Total points: {totalPoints}");
+
+                Console.WriteLine($"You earned {pointsEarned} points.");
             }
             else
             {
-                player.incorrectAnwser();
-                Console.WriteLine("Wrong answer!");
-                Console.WriteLine($"Right answer: {question.GetCorrectAnswer()}");
+                Console.WriteLine("\nWrong answer!");
+                Console.WriteLine($"Correct answer: {GetCorrectAnswer(question)}");
                 Console.WriteLine("No points earned.");
-                Console.WriteLine($"Total points: {player.Score()}");
             }
+
+            Console.WriteLine($"Total points: {player.Score}");
         }
+
+
         private Category? ChooseCategory()
         {
             while (true)
@@ -135,28 +158,63 @@ namespace QuizBattleSpel
                 Console.WriteLine("Invalid choice. Please try again.");
             }
         }
-        private string GetAnswer(Question question)
+        private string GetCorrectAnswer(Question question)
         {
-            while (true)
+            if (question is MultipleChoiceQuestion mcQuestion)
             {
-                if (question is MultipleChoiceQuestion mcQuestion)
-                {
-                    Console.WriteLine("Choose the correct answer by entering the corresponding letter:");
-                    foreach (var option in mcQuestion.Options)
-                    {
-                        Console.WriteLine($"{option.Key}: {option.Value}");
-                    }
-                }
-                else
-                {
-                    Console.Write("Enter your answer: ");
-                }
-                string? answer = Console.ReadLine();
-                if (!string.IsNullOrWhiteSpace(answer))
-                {
-                    return answer;
-                }
-                Console.WriteLine("Answer cannot be empty. Please try again.");
+                return mcQuestion.Options[mcQuestion.CorrectIndex];
+            }
+            else if (question is TrueFalseQuestion tfQuestion)
+            {
+                return tfQuestion.CorrectAnswer ? "True" : "False";
+            }
+            return "unknown answer";
+        }
+        private void ShowFinalResults()
+        {
+            Console.WriteLine("\n=== Final Results ===");
+
+            if (players.Count == 0)
+            {
+                Console.WriteLine("No players participated.");
+                return;
+            }
+
+            List<Player> sortedPlayers = players
+                .OrderByDescending(player => player.Score)
+                .ThenByDescending(player => player.CorrectAnswers)
+                .ToList();
+
+            Console.WriteLine("\nLeaderboard:");
+
+            for (int i = 0; i < sortedPlayers.Count; i++)
+            {
+                Player player = sortedPlayers[i];
+
+                Console.WriteLine(
+                    $"{i + 1}. {player.Name} - {player.Score} points " +
+                    $"({player.CorrectAnswers} correct answers)"
+                );
+            }
+
+            Player winner = sortedPlayers[0];
+
+            List<Player> winners = sortedPlayers
+                .Where(player =>
+                    player.Score == winner.Score &&
+                    player.CorrectAnswers == winner.CorrectAnswers)
+                .ToList();
+
+            if (winners.Count == 1)
+            {
+                Console.WriteLine($"\n{winner.Name} wins!");
+            }
+            else
+            {
+                Console.WriteLine(
+                    "\nShared victory between: " +
+                    string.Join(", ", winners.Select(player => player.Name))
+                );
             }
         }
     }
