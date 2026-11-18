@@ -19,7 +19,7 @@ namespace QuizBattleSpel
             categories.Clear();
 
             JsonElement categoryElements =
-                document.RootElement.GetProperty("categories");
+                document.RootElement.GetProperty("data/categories");
 
             foreach (JsonElement categoryElement in categoryElements.EnumerateArray())
             {
