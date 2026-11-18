@@ -153,7 +153,7 @@ namespace QuizBattleSpel
             {
                 HighScore h = highScores[i];
 
-                Console.WriteLine($"{i + 1}. {h.Name} - {h.Score} poäng, {h.CorrectAnswers} rätt ({h.Date})");
+                Console.WriteLine($"{i + 1}. {h.Name}\t{h.Score,3} poäng, {h.CorrectAnswers,2} rätt ({h.Date})");
             }
         }
     }

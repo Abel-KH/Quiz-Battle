@@ -12,6 +12,7 @@ namespace QuizBattle
         private QuestionManager questionManager = new QuestionManager();
         private List<Player> players = new List<Player>();
         private int rounds;
+        private ResultManager resultManager = new ResultManager();
 
         // MAIN MENU
         public void ShowMainMenu()
@@ -368,33 +369,16 @@ namespace QuizBattle
                     string.Join(", ", winners.Select(p => p.Name))
                 );
             }
+            resultManager.UpdateHighScores(players);
+
         }
 
         // HIGHSCORE MENU
         private void ShowHighscoreMenu()
         {
             Console.Clear();
-            Console.WriteLine("=== Topplista ===");
 
-            string path = Path.Combine(
-                AppContext.BaseDirectory,
-                "data",
-                "highscores.json"
-            );
-
-            if (File.Exists(path))
-            {
-                string content = File.ReadAllText(path);
-
-                if (string.IsNullOrWhiteSpace(content))
-                    Console.WriteLine("Topplistan är tom.");
-                else
-                    Console.WriteLine(content);
-            }
-            else
-            {
-                Console.WriteLine("Ingen topplista finns ännu.");
-            }
+            resultManager.DisplayHighScores();
 
             Console.WriteLine(
                 "\nTryck på valfri knapp för att återgå till menyn..."
