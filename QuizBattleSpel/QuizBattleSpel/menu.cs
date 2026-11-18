@@ -1,11 +1,19 @@
-﻿using System;
+﻿
+using QuizBattleSpel;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace QuizBattle
 {
     public class MenuManager
     {
+        private QuestionManager questionManager = new QuestionManager();
+        private List<Player> players = new List<Player>();
+        private int rounds;
+
+        // MAIN MENU
         public void ShowMainMenu()
         {
             bool isRunning = true;
@@ -23,11 +31,17 @@ namespace QuizBattle
                 switch (choice)
                 {
                     case 1:
-                        StartGameSetup();
+                        StartGame();
+                        Console.WriteLine(
+                            "\nTryck på valfri knapp för att återgå till menyn..."
+                        );
+                        Console.ReadKey();
                         break;
+
                     case 2:
                         ShowHighscoreMenu();
                         break;
+
                     case 3:
                         Console.WriteLine("Avslutar spelet. Hej då!");
                         isRunning = false;
@@ -36,90 +50,58 @@ namespace QuizBattle
             }
         }
 
-        private void StartGameSetup()
+        // START GAME
+        private void StartGame()
         {
             Console.Clear();
-            Console.WriteLine("=== Starta Spel ===");
+            Console.WriteLine("=== Starta spel ===");
 
-            // 1. Inmatning av spelare och rundor
-            int playerCount = InputHelper.ReadIntInRange("Antal spelare (2-4): ", 2, 4);
-            List<string> playerNames = GetUniquePlayerNames(playerCount);
-            int rounds = InputHelper.ReadIntInRange("Antal rundor (1-10): ", 1, 10);
+            int playerCount = InputHelper.ReadIntInRange(
+                "Antal spelare (2-4): ", 2, 4
+            );
 
-            Console.Clear();
-            Console.WriteLine($"Spelet startar med {playerCount} spelare i {rounds} rundor!\n");
-            Console.WriteLine("Tryck på valfri knapp för att börja första rundan...");
-            Console.ReadKey();
+            players.Clear();
 
-            // 2. Själva spellopen (Här rullar rundorna på!)
-            for (int currentRound = 1; currentRound <= rounds; currentRound++)
+            List<string> names = GetUniquePlayerNames(playerCount);
+
+            foreach (string name in names)
             {
-                Console.Clear();
-                Console.WriteLine($"=== Runda {currentRound} av {rounds} ===");
-
-                foreach (string playerName in playerNames)
-                {
-                    Console.WriteLine($"\nDet är {playerName}s tur!");
-                    Console.WriteLine("Välj kategori:");
-                    Console.WriteLine("1. Programmering");
-                    Console.WriteLine("2. Geografi");
-                    Console.WriteLine("3. Slumpa");
-
-                    // Använder din säkra InputHelper här också!
-                    int categoryChoice = InputHelper.ReadIntInRange("Val (1-3): ", 1, 3);
-
-                    // Simulerar en fråga
-                    Console.WriteLine("\nFråga: Vilket år släpptes C# första gången?");
-                    Console.WriteLine("1. 1998");
-                    Console.WriteLine("2. 2000");
-                    Console.WriteLine("3. 2002");
-
-                    int answer = InputHelper.ReadIntInRange("Ditt svar (1-3): ", 1, 3);
-
-                    if (answer == 2)
-                    {
-                        Console.WriteLine("Rätt svar! Du får 20 poäng.");
-                    }
-                    else
-                    {
-                        Console.WriteLine("Fel! Rätt svar var 2000.");
-                    }
-
-                    Console.WriteLine("\nTryck på valfri knapp för nästa spelare...");
-                    Console.ReadKey();
-                }
+                players.Add(new Player(name));
             }
 
-            // 3. När alla rundor är slut
+            rounds = InputHelper.ReadIntInRange(
+                "Antal rundor (1-10): ", 1, 10
+            );
+
+            string questionPath = Path.Combine(AppContext.BaseDirectory,"questions.json");
+
+            if (!File.Exists(questionPath))
+            {
+                Console.WriteLine("Kunde inte hitta questions.json.");
+                return;
+            }
+
+            questionManager = new QuestionManager();
+            questionManager.LoadQuestionsFromJson(questionPath);
+
+            if (!questionManager.HasQuestionsLeft())
+            {
+                Console.WriteLine("Inga frågor kunde laddas.");
+                return;
+            }
+
             Console.Clear();
-            Console.WriteLine("=== Slutresultat ===");
-            Console.WriteLine($"Vinnare: {playerNames[0]}!");
-            Console.WriteLine("\nTryck på valfri knapp för att återgå till huvudmenyn...");
+            Console.WriteLine("=== Spelet börjar! ===");
+            Console.WriteLine($"Antal spelare: {playerCount}");
+            Console.WriteLine($"Antal rundor: {rounds}");
+
+            Console.WriteLine("\nTryck på valfri knapp för att börja...");
             Console.ReadKey();
+
+            PlayRounds();
         }
 
-        private void ShowHighscoreMenu()
-        {
-            Console.Clear();
-            Console.WriteLine("=== Topplista ===");
-
-            string path = Path.Combine("data", "highscores.json");
-
-            if (File.Exists(path))
-            {
-                string content = File.ReadAllText(path);
-                Console.WriteLine(content);
-            }
-            else
-            {
-                Console.WriteLine("1. Andro - 70 poäng (3 rätt)");
-                Console.WriteLine("2. Max - 50 poäng (2 rätt)");
-            }
-
-            Console.WriteLine("\nTryck på valfri knapp för att återgå till menyn...");
-            Console.ReadKey();
-        }
-
+        // GET UNIQUE PLAYER NAMES
         private List<string> GetUniquePlayerNames(int playerCount)
         {
             List<string> names = new List<string>();
@@ -128,10 +110,16 @@ namespace QuizBattle
             {
                 while (true)
                 {
-                    string name = InputHelper.ReadNonEmptyString($"Namn på spelare {i}: ");
+                    string name = InputHelper.ReadNonEmptyString(
+                        $"Namn på spelare {i}: "
+                    );
 
                     bool nameExists = names.Exists(existing =>
-                        existing.Equals(name, StringComparison.OrdinalIgnoreCase));
+                        existing.Equals(
+                            name,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    );
 
                     if (!nameExists)
                     {
@@ -144,6 +132,274 @@ namespace QuizBattle
             }
 
             return names;
+        }
+
+        // GAME ROUNDS
+        private void PlayRounds()
+        {
+            for (int currentRound = 1; currentRound <= rounds; currentRound++)
+            {
+                if (!questionManager.HasQuestionsLeft())
+                {
+                    Console.WriteLine("\nAlla frågor har använts!");
+                    break;
+                }
+
+                Console.Clear();
+                Console.WriteLine(
+                    $"=== Runda {currentRound} av {rounds} ==="
+                );
+
+                foreach (Player player in players)
+                {
+                    if (!questionManager.HasQuestionsLeft())
+                    {
+                        Console.WriteLine("\nAlla frågor har använts!");
+                        break;
+                    }
+
+                    PlayerTurn(player);
+                }
+            }
+
+            ShowFinalResults();
+        }
+
+        // PLAYER TURN
+        private void PlayerTurn(Player player)
+        {
+            Console.Clear();
+            Console.WriteLine($"\nDet är {player.Name}s tur!");
+
+            Category? category = ChooseCategory();
+
+            if (category == null)
+            {
+                Console.WriteLine("Ingen kategori tillgänglig.");
+                return;
+            }
+
+            Question? question =
+                questionManager.GetRandomQuestion(category);
+
+            if (question == null)
+            {
+                Console.WriteLine("Kunde inte hitta någon fråga.");
+                return;
+            }
+
+            Console.WriteLine($"\nKategori: {category.Name}");
+            Console.WriteLine($"Svårighetsgrad: {question.Difficulty}");
+            Console.WriteLine($"Poäng: {question.GetPoints()}");
+            Console.WriteLine($"\n{question.Text}");
+
+            if (question is MultipleChoiceQuestion mcQuestion)
+            {
+                for (int i = 0; i < mcQuestion.Options.Count; i++)
+                {
+                    Console.WriteLine(
+                        $"{i + 1}. {mcQuestion.Options[i]}"
+                    );
+                }
+            }
+            else if (question is TrueFalseQuestion)
+            {
+                Console.WriteLine("Sant (s) eller falskt (f)?");
+            }
+
+            string answer = GetAnswer(question);
+
+            bool isCorrect = question.CheckAnswer(answer);
+
+            int pointsEarned = player.RegisterAnswer(
+                isCorrect,
+                question.Difficulty
+            );
+
+            if (isCorrect)
+            {
+                Console.WriteLine("\nRätt svar!");
+                Console.WriteLine($"Du fick {pointsEarned} poäng.");
+            }
+            else
+            {
+                Console.WriteLine("\nFel svar!");
+                Console.WriteLine(
+                    $"Rätt svar: {GetCorrectAnswer(question)}"
+                );
+            }
+
+            Console.WriteLine($"\nTotal poäng: {player.Score}");
+            Console.WriteLine($"Antal rätt: {player.CorrectAnswers}");
+
+            Console.WriteLine("\nTryck på valfri knapp för nästa spelare...");
+            Console.ReadKey();
+        }
+
+        // CHOOSE CATEGORY
+        private Category? ChooseCategory()
+        {
+            while (true)
+            {
+                List<Category> categories =
+                    questionManager.GetAvailableCategories();
+
+                if (categories.Count == 0)
+                    return null;
+
+                Console.WriteLine("\nTillgängliga kategorier:");
+
+                for (int i = 0; i < categories.Count; i++)
+                {
+                    Console.WriteLine(
+                        $"{i + 1}. {categories[i].Name} " +
+                        $"({categories[i].Questions.Count} frågor kvar)"
+                    );
+                }
+
+                Console.WriteLine($"{categories.Count + 1}. Slumpa kategori");
+
+                int choice = InputHelper.ReadIntInRange(
+                    "Välj kategori: ",
+                    1,
+                    categories.Count + 1
+                );
+
+                if (choice == categories.Count + 1)
+                {
+                    return questionManager.GetRandomCategory();
+                }
+
+                return categories[choice - 1];
+            }
+        }
+
+        // GET ANSWER
+        private string GetAnswer(Question question)
+        {
+            while (true)
+            {
+                if (question is MultipleChoiceQuestion mcQuestion)
+                {
+                    int choice = InputHelper.ReadIntInRange(
+                        $"Ditt svar (1-{mcQuestion.Options.Count}): ",
+                        1,
+                        mcQuestion.Options.Count
+                    );
+
+                    return choice.ToString();
+                }
+
+                if (question is TrueFalseQuestion)
+                {
+                    Console.Write("Ditt svar (s/f): ");
+                    string? answer = Console.ReadLine()?.Trim().ToLower();
+
+                    if (answer == "s")
+                        return "true";
+
+                    if (answer == "f")
+                        return "false";
+
+                    Console.WriteLine("Skriv t eller f.");
+                }
+                else
+                {
+                    return Console.ReadLine() ?? "";
+                }
+            }
+        }
+
+        // GET CORRECT ANSWER
+        private string GetCorrectAnswer(Question question)
+        {
+            if (question is MultipleChoiceQuestion mcQuestion)
+            {
+                return mcQuestion.Options[mcQuestion.CorrectIndex];
+            }
+
+            if (question is TrueFalseQuestion tfQuestion)
+            {
+                return tfQuestion.CorrectAnswer ? "Sant" : "Falskt";
+            }
+
+            return "Okänt svar";
+        }
+
+        // FINAL RESULTS
+        private void ShowFinalResults()
+        {
+            Console.Clear();
+            Console.WriteLine("=== Slutresultat ===");
+
+            List<Player> sortedPlayers = players
+                .OrderByDescending(player => player.Score)
+                .ThenByDescending(player => player.CorrectAnswers)
+                .ToList();
+
+            foreach (Player player in sortedPlayers)
+            {
+                Console.WriteLine(
+                    $"{player.Name}: {player.Score} poäng " +
+                    $"({player.CorrectAnswers} rätt)"
+                );
+            }
+
+            if (sortedPlayers.Count == 0)
+                return;
+
+            Player bestPlayer = sortedPlayers[0];
+
+            List<Player> winners = sortedPlayers
+                .Where(player =>
+                    player.Score == bestPlayer.Score &&
+                    player.CorrectAnswers == bestPlayer.CorrectAnswers
+                )
+                .ToList();
+
+            if (winners.Count == 1)
+            {
+                Console.WriteLine($"\nVinnare: {bestPlayer.Name}!");
+            }
+            else
+            {
+                Console.WriteLine(
+                    "\nDelad vinst mellan: " +
+                    string.Join(", ", winners.Select(p => p.Name))
+                );
+            }
+        }
+
+        // HIGHSCORE MENU
+        private void ShowHighscoreMenu()
+        {
+            Console.Clear();
+            Console.WriteLine("=== Topplista ===");
+
+            string path = Path.Combine(
+                AppContext.BaseDirectory,
+                "data",
+                "highscores.json"
+            );
+
+            if (File.Exists(path))
+            {
+                string content = File.ReadAllText(path);
+
+                if (string.IsNullOrWhiteSpace(content))
+                    Console.WriteLine("Topplistan är tom.");
+                else
+                    Console.WriteLine(content);
+            }
+            else
+            {
+                Console.WriteLine("Ingen topplista finns ännu.");
+            }
+
+            Console.WriteLine(
+                "\nTryck på valfri knapp för att återgå till menyn..."
+            );
+            Console.ReadKey();
         }
     }
 }
