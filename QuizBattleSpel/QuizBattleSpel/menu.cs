@@ -13,7 +13,7 @@ namespace QuizBattle
         private List<Player> players = new List<Player>();
         private int rounds;
 
-        // MAIN MENU
+        // Huvudmeny, visar alternativ för att spela, visa topplista eller avsluta spelet
         public void ShowMainMenu()
         {
             bool isRunning = true;
@@ -50,7 +50,7 @@ namespace QuizBattle
             }
         }
 
-        // START GAME
+        // Startar spelet, läser in frågor och hanterar spelare och rundor
         private void StartGame()
         {
             Console.Clear();
@@ -101,7 +101,7 @@ namespace QuizBattle
             PlayRounds();
         }
 
-        // GET UNIQUE PLAYER NAMES
+        // Kontrollerar att spelarnamn är unika och returnerar en lista med namn
         private List<string> GetUniquePlayerNames(int playerCount)
         {
             List<string> names = new List<string>();
@@ -134,7 +134,7 @@ namespace QuizBattle
             return names;
         }
 
-        // GAME ROUNDS
+        // Spelar rundorna, varje spelare får en tur per runda
         private void PlayRounds()
         {
             for (int currentRound = 1; currentRound <= rounds; currentRound++)
@@ -165,7 +165,7 @@ namespace QuizBattle
             ShowFinalResults();
         }
 
-        // PLAYER TURN
+        // Spelar en tur för en spelare, väljer kategori och fråga, och hanterar svar
         private void PlayerTurn(Player player)
         {
             Console.Clear();
@@ -236,7 +236,7 @@ namespace QuizBattle
             Console.ReadKey();
         }
 
-        // CHOOSE CATEGORY
+        // välj kategori för spelaren, antingen genom att välja från listan eller slumpa
         private Category? ChooseCategory()
         {
             while (true)
@@ -274,7 +274,7 @@ namespace QuizBattle
             }
         }
 
-        // GET ANSWER
+        // Få svar från spelaren, hanterar olika frågetyper (flervalsfrågor och sant/falskt-frågor)
         private string GetAnswer(Question question)
         {
             while (true)
@@ -301,7 +301,7 @@ namespace QuizBattle
                     if (answer == "f")
                         return "false";
 
-                    Console.WriteLine("Skriv t eller f.");
+                    Console.WriteLine("Skriv s eller f.");
                 }
                 else
                 {
@@ -310,7 +310,7 @@ namespace QuizBattle
             }
         }
 
-        // GET CORRECT ANSWER
+        // Få rätt svar för en fråga, används för att visa rätt svar när spelaren svarar fel
         private string GetCorrectAnswer(Question question)
         {
             if (question is MultipleChoiceQuestion mcQuestion)
@@ -326,7 +326,7 @@ namespace QuizBattle
             return "Okänt svar";
         }
 
-        // FINAL RESULTS
+        // Resultat efter alla rundor, visar poäng och antal rätta svar för varje spelare, samt bestämmer vinnaren eller delad vinst
         private void ShowFinalResults()
         {
             Console.Clear();
@@ -370,7 +370,7 @@ namespace QuizBattle
             }
         }
 
-        // HIGHSCORE MENU
+        // Topplista, visar sparade poäng från tidigare spel, läser från en JSON-fil och hanterar om filen inte finns eller är tom
         private void ShowHighscoreMenu()
         {
             Console.Clear();
