@@ -74,7 +74,7 @@ namespace QuizBattle
                 "Antal rundor (1-10): ", 1, 10
             );
 
-            string questionPath = Path.Combine(AppContext.BaseDirectory,"questions.json");
+            string questionPath = Path.Combine(AppContext.BaseDirectory, "data", "questions.json");
 
             if (!File.Exists(questionPath))
             {
