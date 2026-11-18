@@ -331,44 +331,7 @@ namespace QuizBattle
         private void ShowFinalResults()
         {
             Console.Clear();
-            Console.WriteLine("=== Slutresultat ===");
-
-            List<Player> sortedPlayers = players
-                .OrderByDescending(player => player.Score)
-                .ThenByDescending(player => player.CorrectAnswers)
-                .ToList();
-
-            foreach (Player player in sortedPlayers)
-            {
-                Console.WriteLine(
-                    $"{player.Name}: {player.Score} poäng " +
-                    $"({player.CorrectAnswers} rätt)"
-                );
-            }
-
-            if (sortedPlayers.Count == 0)
-                return;
-
-            Player bestPlayer = sortedPlayers[0];
-
-            List<Player> winners = sortedPlayers
-                .Where(player =>
-                    player.Score == bestPlayer.Score &&
-                    player.CorrectAnswers == bestPlayer.CorrectAnswers
-                )
-                .ToList();
-
-            if (winners.Count == 1)
-            {
-                Console.WriteLine($"\nVinnare: {bestPlayer.Name}!");
-            }
-            else
-            {
-                Console.WriteLine(
-                    "\nDelad vinst mellan: " +
-                    string.Join(", ", winners.Select(p => p.Name))
-                );
-            }
+            resultManager.DisplayGameResults(players, rounds);
             resultManager.UpdateHighScores(players);
 
         }
